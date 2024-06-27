@@ -4,6 +4,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
+import re
 
 load_dotenv()
 
@@ -19,6 +20,8 @@ generation_config = {
   "max_output_tokens": 8192,
   "response_mime_type": "text/plain",
 }
+
+
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     generation_config=generation_config,
@@ -55,25 +58,32 @@ def summarize_transcript(transcript):
     chat_session=model.start_chat(history=[])
     response=chat_session.send_message(transcript)
     return response.text
-
-@app.route('/transcript', methods=['GET'])
-def transcript():
-    video_id = request.args.get('video_id')
+def get_video_transcript(video_id):
+    try:
+        transcript_list=YouTubeTranscriptApi.get_transcript(video_id,languages=['en'])
+        if isinstance(transcript_list,list) and all(isinstance(item,dict)for item in transcript_list):  
+            transcript_text=' '.join([transcript['text']for transcript in transcript_list])
+            return transcript_text
+    except Exception as e:
+        return str(e)
     
-    if not video_id:
-        return jsonify({'error': 'Video ID parameter is required'}), 400
-    
-    transcript_text = get_video_transcript(video_id)
-    return jsonify({'transcript': transcript_text})
 
-@app.route('/summarize',methods=['POST'])
-def  summarize():
-    data=request.get_json()
-    transcript=data.get('transcript')
-    if not transcript:
-        return jsonify({'error':'Transcript is reqired'}),400
-    summary=summarize_transcript(transcript)
-    return jsonify({'summary':summary})
+@app.route('/api/summarize',methods=['GET'])
+def api_summarize():
+    youtube_url=request.args.get('youtube_url')
+    if not youtube_url:
+        return jsonify({"error":"Youtube Url is required!!"}),400
+    video_id_match=re.search(r'v=([a-zA-Z0-9_-]{11})',youtube_url)
+    if not video_id_match:
+        return jsonify({'error':'Invalid Youtube Url'}),400
+    video_id=video_id_match.group(1)
+
+    transcript_text=get_video_transcript(video_id)
+    if not transcript_text or "Error" in transcript_text:
+        return jsonify({'error':f'could not retrieve transcript :{transcript_text}'})
+    summary=summarize_transcript(transcript_text)
+    return jsonify({'summary':summary}),200
+    
 
 if __name__ == '__main__':
     app.run(debug=True)
