@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request,render_template
 from flask_restful import Api, Resource
 from youtube_transcript_api import YouTubeTranscriptApi
 from dotenv import load_dotenv
@@ -20,6 +20,7 @@ api = Api(app)
 CORS(app)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
+translator=Translator()
 
 generation_config = {
   "temperature": 1,
@@ -27,118 +28,6 @@ generation_config = {
   "top_k": 64,
   "max_output_tokens": 8192,
   "response_mime_type": "text/plain",
-}
-
-
-# target language options
-LANGUAGES = {
-    'af': 'afrikaans',
-    'sq': 'albanian',
-    'am': 'amharic',
-    'ar': 'arabic',
-    'hy': 'armenian',
-    'az': 'azerbaijani',
-    'eu': 'basque',
-    'be': 'belarusian',
-    'bn': 'bengali',
-    'bs': 'bosnian',
-    'bg': 'bulgarian',
-    'ca': 'catalan',
-    'ceb': 'cebuano',
-    'ny': 'chichewa',
-    'zh-cn': 'chinese (simplified)',
-    'zh-tw': 'chinese (traditional)',
-    'co': 'corsican',
-    'hr': 'croatian',
-    'cs': 'czech',
-    'da': 'danish',
-    'nl': 'dutch',
-    'en': 'english',
-    'eo': 'esperanto',
-    'et': 'estonian',
-    'tl': 'filipino',
-    'fi': 'finnish',
-    'fr': 'french',
-    'fy': 'frisian',
-    'gl': 'galician',
-    'ka': 'georgian',
-    'de': 'german',
-    'el': 'greek',
-    'gu': 'gujarati',
-    'ht': 'haitian creole',
-    'ha': 'hausa',
-    'haw': 'hawaiian',
-    'iw': 'hebrew',
-    'he': 'hebrew',
-    'hi': 'hindi',
-    'hmn': 'hmong',
-    'hu': 'hungarian',
-    'is': 'icelandic',
-    'ig': 'igbo',
-    'id': 'indonesian',
-    'ga': 'irish',
-    'it': 'italian',
-    'ja': 'japanese',
-    'jw': 'javanese',
-    'kn': 'kannada',
-    'kk': 'kazakh',
-    'km': 'khmer',
-    'ko': 'korean',
-    'ku': 'kurdish (kurmanji)',
-    'ky': 'kyrgyz',
-    'lo': 'lao',
-    'la': 'latin',
-    'lv': 'latvian',
-    'lt': 'lithuanian',
-    'lb': 'luxembourgish',
-    'mk': 'macedonian',
-    'mg': 'malagasy',
-    'ms': 'malay',
-    'ml': 'malayalam',
-    'mt': 'maltese',
-    'mi': 'maori',
-    'mr': 'marathi',
-    'mn': 'mongolian',
-    'my': 'myanmar (burmese)',
-    'ne': 'nepali',
-    'no': 'norwegian',
-    'or': 'odia',
-    'ps': 'pashto',
-    'fa': 'persian',
-    'pl': 'polish',
-    'pt': 'portuguese',
-    'pa': 'punjabi',
-    'ro': 'romanian',
-    'ru': 'russian',
-    'sm': 'samoan',
-    'gd': 'scots gaelic',
-    'sr': 'serbian',
-    'st': 'sesotho',
-    'sn': 'shona',
-    'sd': 'sindhi',
-    'si': 'sinhala',
-    'sk': 'slovak',
-    'sl': 'slovenian',
-    'so': 'somali',
-    'es': 'spanish',
-    'su': 'sundanese',
-    'sw': 'swahili',
-    'sv': 'swedish',
-    'tg': 'tajik',
-    'ta': 'tamil',
-    'te': 'telugu',
-    'th': 'thai',
-    'tr': 'turkish',
-    'uk': 'ukrainian',
-    'ur': 'urdu',
-    'ug': 'uyghur',
-    'uz': 'uzbek',
-    'vi': 'vietnamese',
-    'cy': 'welsh',
-    'xh': 'xhosa',
-    'yi': 'yiddish',
-    'yo': 'yoruba',
-    'zu': 'zulu',
 }
 
 
@@ -180,7 +69,19 @@ def summarize_transcript(transcript):
     return response.text
 def get_video_transcript(video_id):
     try:
-        transcript_list=YouTubeTranscriptApi.get_transcript(video_id,languages=['en'])
+        transcript_list=YouTubeTranscriptApi.get_transcript(video_id,languages=[
+        'en', 'hi', 'af', 'sq', 'am', 'ar', 'hy', 'az', 'eu', 'be',
+        'bn', 'bs', 'bg', 'ca', 'ceb', 'ny', 'zh-cn', 'zh-tw', 'co',
+        'hr', 'cs', 'da', 'nl', 'eo', 'et', 'tl', 'fi', 'fr', 'fy',
+        'gl', 'ka', 'de', 'el', 'gu', 'ht', 'ha', 'haw', 'iw', 'he',
+        'hmn', 'hu', 'is', 'ig', 'id', 'ga', 'it', 'ja', 'jw', 'kn',
+        'kk', 'km', 'ko', 'ku', 'ky', 'lo', 'la', 'lv', 'lt', 'lb',
+        'mk', 'mg', 'ms', 'ml', 'mt', 'mi', 'mr', 'mn', 'my', 'ne',
+        'no', 'or', 'ps', 'fa', 'pl', 'pt', 'pa', 'ro', 'ru', 'sm',
+        'gd', 'sr', 'st', 'sn', 'sd', 'si', 'sk', 'sl', 'so', 'es',
+        'su', 'sw', 'sv', 'tg', 'ta', 'te', 'th', 'tr', 'uk', 'ur',
+        'ug', 'uz', 'vi', 'cy', 'xh', 'yi', 'yo', 'zu'
+    ])
         if isinstance(transcript_list,list) and all(isinstance(item,dict)for item in transcript_list):  
             transcript_text=' '.join([transcript['text']for transcript in transcript_list])
             return transcript_text
@@ -191,25 +92,32 @@ def translate_summary(summary,target_language):
     translate=translator.translate(summary,dest=target_language)
     return  translate.text
 
-@app.route('/api/summarize',methods=['GET'])
+@app.route('/api/summarize', methods=['GET'])
 def api_summarize():
-    youtube_url=request.args.get('youtube_url')
+    youtube_url = request.args.get('youtube_url')
+    language_code = request.args.get('language_code').strip()
     if not youtube_url:
-        return jsonify({"error":"Youtube Url is required!!"}),400
-    video_id_match=re.search(r'v=([a-zA-Z0-9_-]{11})',youtube_url)
+        return jsonify({"error": "Youtube Url is required!!"}), 400
+    
+    if not language_code:
+        return jsonify({"error": "Language code is required!!"}), 400
+
+    video_id_match = re.search(r'v=([a-zA-Z0-9_-]{11})', youtube_url)
     if not video_id_match:
-        return jsonify({'error':'Invalid Youtube Url'}),400
-    video_id=video_id_match.group(1)
-
-    transcript_text=get_video_transcript(video_id)
+        return jsonify({'error': 'Invalid Youtube Url'}), 400
+    
+    video_id = video_id_match.group(1)
+    transcript_text = get_video_transcript(video_id)
+    
     if not transcript_text or "Error" in transcript_text:
-        return jsonify({'error':f'could not retrieve transcript :{transcript_text}'})
-    summary=summarize_transcript(transcript_text)
+        return jsonify({'error': f'Could not retrieve transcript: {transcript_text}'})
+    
+    summary = summarize_transcript(transcript_text)
+    
+    translated_summary=translate_summary(summary,language_code)
+    
+    return jsonify({'summary': translated_summary}), 200
 
-    target_language='mr'
-    translated_summary=translate_summary(summary,target_language)
-        
-    return jsonify({'summary':translated_summary}),200
     
    
 
