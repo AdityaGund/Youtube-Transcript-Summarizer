@@ -5,13 +5,21 @@ from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 import re
+from flask_cors import CORS
+import requests
+from googletrans import Translator
+
+
+
+translator=Translator()
 
 load_dotenv()
 
 app = Flask(__name__)
 api = Api(app)
-
+CORS(app)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 
 generation_config = {
   "temperature": 1,
@@ -19,6 +27,118 @@ generation_config = {
   "top_k": 64,
   "max_output_tokens": 8192,
   "response_mime_type": "text/plain",
+}
+
+
+# target language options
+LANGUAGES = {
+    'af': 'afrikaans',
+    'sq': 'albanian',
+    'am': 'amharic',
+    'ar': 'arabic',
+    'hy': 'armenian',
+    'az': 'azerbaijani',
+    'eu': 'basque',
+    'be': 'belarusian',
+    'bn': 'bengali',
+    'bs': 'bosnian',
+    'bg': 'bulgarian',
+    'ca': 'catalan',
+    'ceb': 'cebuano',
+    'ny': 'chichewa',
+    'zh-cn': 'chinese (simplified)',
+    'zh-tw': 'chinese (traditional)',
+    'co': 'corsican',
+    'hr': 'croatian',
+    'cs': 'czech',
+    'da': 'danish',
+    'nl': 'dutch',
+    'en': 'english',
+    'eo': 'esperanto',
+    'et': 'estonian',
+    'tl': 'filipino',
+    'fi': 'finnish',
+    'fr': 'french',
+    'fy': 'frisian',
+    'gl': 'galician',
+    'ka': 'georgian',
+    'de': 'german',
+    'el': 'greek',
+    'gu': 'gujarati',
+    'ht': 'haitian creole',
+    'ha': 'hausa',
+    'haw': 'hawaiian',
+    'iw': 'hebrew',
+    'he': 'hebrew',
+    'hi': 'hindi',
+    'hmn': 'hmong',
+    'hu': 'hungarian',
+    'is': 'icelandic',
+    'ig': 'igbo',
+    'id': 'indonesian',
+    'ga': 'irish',
+    'it': 'italian',
+    'ja': 'japanese',
+    'jw': 'javanese',
+    'kn': 'kannada',
+    'kk': 'kazakh',
+    'km': 'khmer',
+    'ko': 'korean',
+    'ku': 'kurdish (kurmanji)',
+    'ky': 'kyrgyz',
+    'lo': 'lao',
+    'la': 'latin',
+    'lv': 'latvian',
+    'lt': 'lithuanian',
+    'lb': 'luxembourgish',
+    'mk': 'macedonian',
+    'mg': 'malagasy',
+    'ms': 'malay',
+    'ml': 'malayalam',
+    'mt': 'maltese',
+    'mi': 'maori',
+    'mr': 'marathi',
+    'mn': 'mongolian',
+    'my': 'myanmar (burmese)',
+    'ne': 'nepali',
+    'no': 'norwegian',
+    'or': 'odia',
+    'ps': 'pashto',
+    'fa': 'persian',
+    'pl': 'polish',
+    'pt': 'portuguese',
+    'pa': 'punjabi',
+    'ro': 'romanian',
+    'ru': 'russian',
+    'sm': 'samoan',
+    'gd': 'scots gaelic',
+    'sr': 'serbian',
+    'st': 'sesotho',
+    'sn': 'shona',
+    'sd': 'sindhi',
+    'si': 'sinhala',
+    'sk': 'slovak',
+    'sl': 'slovenian',
+    'so': 'somali',
+    'es': 'spanish',
+    'su': 'sundanese',
+    'sw': 'swahili',
+    'sv': 'swedish',
+    'tg': 'tajik',
+    'ta': 'tamil',
+    'te': 'telugu',
+    'th': 'thai',
+    'tr': 'turkish',
+    'uk': 'ukrainian',
+    'ur': 'urdu',
+    'ug': 'uyghur',
+    'uz': 'uzbek',
+    'vi': 'vietnamese',
+    'cy': 'welsh',
+    'xh': 'xhosa',
+    'yi': 'yiddish',
+    'yo': 'yoruba',
+    'zu': 'zulu',
 }
 
 
@@ -67,6 +187,9 @@ def get_video_transcript(video_id):
     except Exception as e:
         return str(e)
     
+def translate_summary(summary,target_language):
+    translate=translator.translate(summary,dest=target_language)
+    return  translate.text
 
 @app.route('/api/summarize',methods=['GET'])
 def api_summarize():
@@ -82,8 +205,14 @@ def api_summarize():
     if not transcript_text or "Error" in transcript_text:
         return jsonify({'error':f'could not retrieve transcript :{transcript_text}'})
     summary=summarize_transcript(transcript_text)
-    return jsonify({'summary':summary}),200
+
+    target_language='mr'
+    translated_summary=translate_summary(summary,target_language)
+        
+    return jsonify({'summary':translated_summary}),200
     
+   
+
 
 if __name__ == '__main__':
     app.run(debug=True)
